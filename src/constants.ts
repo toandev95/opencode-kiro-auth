@@ -13,6 +13,8 @@ export const EXPIRY_SKEW_MS = 5 * 60 * 1000
 
 /** Kiro CodeWhisperer endpoints + awsJson1.0 wire facts (verified against kiro-cli). */
 export const KIRO_ENDPOINT = "https://runtime.us-east-1.kiro.dev/"
+/** Endpoint kiro-cli uses for the InvokeMCP operation (built-in web_search). */
+export const KIRO_MCP_ENDPOINT = "https://q.us-east-1.amazonaws.com/"
 export const KIRO_MANAGEMENT_ENDPOINT = "https://management.us-east-1.kiro.dev/"
 export const KIRO_TARGET = "AmazonCodeWhispererStreamingService.GenerateAssistantResponse"
 export const KIRO_INVOKE_MCP_TARGET = "AmazonCodeWhispererStreamingService.InvokeMCP"

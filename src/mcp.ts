@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import {
-  KIRO_ENDPOINT,
+  KIRO_MCP_ENDPOINT,
   KIRO_INVOKE_MCP_TARGET,
   KIRO_CONTENT_TYPE,
   KIRO_USER_AGENT,
@@ -16,9 +16,10 @@ import { getProfileArn } from "./profile"
  * InvokeMCP (authenticated with the same bearer token), and the backend runs the
  * search server-side. No third-party API key is required.
  *
- * Verified wire shape (awsJson1.0):
- *   POST https://runtime.us-east-1.kiro.dev/
+ * Verified wire shape (awsJson1.0), matching kiro-cli byte-for-byte:
+ *   POST https://q.us-east-1.amazonaws.com/
  *   x-amz-target: AmazonCodeWhispererStreamingService.InvokeMCP
+ *   x-amzn-kiro-profile-arn: <profileArn>
  *   body: { profileArn, jsonrpc: "2.0", id, method: "tools/call",
  *           params: { name, arguments } }
  *   ok:  { id, jsonrpc, result: { content: [{ type: "text", text: <json> }] } }
@@ -55,17 +56,18 @@ export async function invokeMcp(method: string, params?: unknown): Promise<JsonR
   const body: Record<string, unknown> = { profileArn, jsonrpc: "2.0", id: "1", method }
   if (params !== undefined) body.params = params
 
-  const res = await fetch(KIRO_ENDPOINT, {
+  const res = await fetch(KIRO_MCP_ENDPOINT, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${accessToken}`,
+      "x-amzn-kiro-profile-arn": profileArn,
       "content-type": KIRO_CONTENT_TYPE,
       "x-amz-target": KIRO_INVOKE_MCP_TARGET,
       "user-agent": KIRO_USER_AGENT,
       "x-amz-user-agent": KIRO_X_AMZ_USER_AGENT,
       "x-amzn-codewhisperer-optout": "false",
+      authorization: `Bearer ${accessToken}`,
       "amz-sdk-invocation-id": randomUUID(),
-      accept: "application/json",
+      "amz-sdk-request": "attempt=1; max=1",
     },
     body: JSON.stringify(body),
   })
