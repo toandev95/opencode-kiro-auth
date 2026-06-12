@@ -27,6 +27,45 @@ const DEFAULT_MODEL = "claude-sonnet-4.6"
 const ENV_STATE = {
   operatingSystem: process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux",
   currentWorkingDirectory: process.cwd(),
+  environmentVariables: [] as string[],
+}
+
+/**
+ * Format the local time exactly like kiro-cli's CONTEXT ENTRY, e.g.
+ * "Friday, 2026-06-12T20:09:05.270+07:00" (long weekday + ISO8601 local time with ms
+ * and numeric UTC offset). Verified against a live kiro-cli request capture.
+ */
+function currentTimestamp(d: Date = new Date()): string {
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" })
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0")
+  const offsetMin = -d.getTimezoneOffset() // minutes east of UTC
+  const sign = offsetMin >= 0 ? "+" : "-"
+  const abs = Math.abs(offsetMin)
+  return (
+    `${weekday}, ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}` +
+    `${sign}${pad(Math.trunc(abs / 60))}:${pad(abs % 60)}`
+  )
+}
+
+/**
+ * Wrap the current user turn exactly like kiro-cli: a CONTEXT ENTRY block carrying the
+ * current local time, followed by the USER MESSAGE markers. Matches the byte-for-byte
+ * framing observed in a live GenerateAssistantResponse capture:
+ *   --- CONTEXT ENTRY BEGIN ---
+ *   Current time: <ts>
+ *   --- CONTEXT ENTRY END ---
+ *
+ *   --- USER MESSAGE BEGIN ---
+ *   <text>--- USER MESSAGE END ---
+ */
+function wrapCurrentContent(text: string): string {
+  return (
+    "--- CONTEXT ENTRY BEGIN ---\n" +
+    `Current time: ${currentTimestamp()}\n` +
+    "--- CONTEXT ENTRY END ---\n\n" +
+    `--- USER MESSAGE BEGIN ---\n${text}--- USER MESSAGE END ---`
+  )
 }
 
 function textOf(content: string | Block[]): string {
@@ -86,15 +125,18 @@ function images(content: string | Block[]) {
   return imgs.map((b) => ({ format: IMAGE_FORMATS[b.source.media_type] ?? "png", source: { bytes: b.source.data } }))
 }
 
-function userEntry(msg: Message, modelId: string, tools?: ReturnType<typeof toolSpecs>) {
+function userEntry(msg: Message, modelId: string, tools?: ReturnType<typeof toolSpecs>, isCurrent = false) {
   const context: Record<string, unknown> = { envState: ENV_STATE }
   const tr = toolResults(msg.content)
   if (tr) context.toolResults = tr
   if (tools) context.tools = tools
   const imgs = images(msg.content)
+  const text = textOf(msg.content) || " "
   return {
     userInputMessage: {
-      content: textOf(msg.content) || " ",
+      // The current turn carries kiro-cli's CONTEXT ENTRY + USER MESSAGE framing; prior
+      // turns are sent as-is, matching how kiro-cli replays history.
+      content: isCurrent ? wrapCurrentContent(text) : text,
       userInputMessageContext: context,
       origin: KIRO_ORIGIN,
       modelId,
@@ -146,7 +188,7 @@ export function toKiroRequest(
     profileArn,
     conversationState: {
       conversationId: randomUUID(),
-      currentMessage: userEntry(current, modelId, tools),
+      currentMessage: userEntry(current, modelId, tools, true),
       history,
       chatTriggerType: "MANUAL",
       agentContinuationId: randomUUID(),
