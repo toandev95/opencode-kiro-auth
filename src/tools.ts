@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from "@opencode-ai/plugin"
+import type { ToolDefinition } from "@opencode-ai/plugin"
 import { webSearch, type WebSearchResult } from "./mcp"
 
 /**
@@ -7,6 +7,11 @@ import { webSearch, type WebSearchResult } from "./mcp"
  * `web_search` mirrors the tool kiro-cli exposes: it runs server-side on Kiro's
  * backend (via the InvokeMCP operation) using the existing kiro-cli login, so it
  * needs no third-party search API key.
+ *
+ * NOTE: This module intentionally has no runtime imports from "@opencode-ai/plugin"
+ * (type-only). Plugin tool args are declared as plain JSON Schema, which opencode's
+ * tool registry accepts directly. This keeps the plugin loadable from a local
+ * `file://` path where peer dependencies are not installed.
  */
 
 function formatResults(query: string, results: WebSearchResult[]): string {
@@ -30,20 +35,21 @@ function formatResults(query: string, results: WebSearchResult[]): string {
   ].join("\n")
 }
 
-const web_search: ToolDefinition = tool({
+const web_search = {
   description:
     "Search the web for current, up-to-date information using Kiro's built-in web search " +
     "(no API key required). Returns titles, URLs, and snippets. Use for recent events, " +
     "latest versions, pricing, or anything that may have changed since training. " +
     "Always cite sources inline as [n](url).",
   args: {
-    query: tool.schema
-      .string()
-      .max(200, "Query must be 200 characters or fewer.")
-      .describe("The search query to execute. Must be 200 characters or fewer."),
+    query: {
+      type: "string",
+      description: "The search query to execute. Must be 200 characters or fewer.",
+      maxLength: 200,
+    },
   },
-  async execute(args) {
-    const query = args.query
+  async execute(args: { query: string }) {
+    const query = String(args?.query ?? "")
     const results = await webSearch(query)
     return {
       title: query,
@@ -51,7 +57,7 @@ const web_search: ToolDefinition = tool({
       metadata: { count: results.length, results },
     }
   },
-})
+} as unknown as ToolDefinition
 
 export const tools: Record<string, ToolDefinition> = {
   web_search,
