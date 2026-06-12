@@ -3,13 +3,14 @@
   // (~ resolves to your home directory on all OSes, including Windows.)
   "$schema": "https://opencode.ai/config.json",
 
-  // Load the plugin from its local folder. Use an absolute path or file:// URL,
-  // e.g. "file:///ABSOLUTE/PATH/TO/opencode-kiro-auth".
-  "plugin": ["file:///ABSOLUTE/PATH/TO/opencode-kiro-auth"],
+  // Load the plugin straight from GitHub. Pin a release with #<tag> if you want,
+  // e.g. "github:toandev95/opencode-kiro-auth#v1.0.0". For local dev, swap this for
+  // an absolute file:// URL, e.g. "file:///ABSOLUTE/PATH/TO/opencode-kiro-auth".
+  "plugin": ["github:toandev95/opencode-kiro-auth"],
 
   "provider": {
     "kiro": {
-      "name": "Kiro (via kiro-cli)",
+      "name": "Kiro",
       // Driven through the Anthropic AI SDK provider; the plugin intercepts every
       // request and routes it to Kiro, so baseURL is only a placeholder.
       "npm": "@ai-sdk/anthropic",
@@ -20,80 +21,102 @@
       // picker as labels and carry no request options, so the request is unchanged.
       "models": {
         "auto": {
-          "name": "Auto (Kiro picks)",
+          "name": "Auto",
           "limit": { "context": 1000000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "claude-opus-4.8": {
-          "name": "Claude Opus 4.8 (Kiro)",
+          "name": "Claude Opus 4.8",
           "limit": { "context": 1000000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
-          "variants": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }]
+          "variants": {
+            "low": {},
+            "medium": {},
+            "high": {},
+            "xhigh": {},
+            "max": {},
+          },
         },
         "claude-opus-4.7": {
-          "name": "Claude Opus 4.7 (Kiro)",
+          "name": "Claude Opus 4.7",
           "limit": { "context": 1000000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
-          "variants": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }]
+          "variants": {
+            "low": {},
+            "medium": {},
+            "high": {},
+            "xhigh": {},
+            "max": {},
+          },
         },
         "claude-opus-4.6": {
-          "name": "Claude Opus 4.6 (Kiro)",
+          "name": "Claude Opus 4.6",
           "limit": { "context": 1000000, "output": 64000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
-          "variants": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "max" }]
+          "variants": {
+            "low": {},
+            "medium": {},
+            "high": {},
+            "max": {},
+          },
         },
         "claude-sonnet-4.6": {
-          "name": "Claude Sonnet 4.6 (Kiro)",
+          "name": "Claude Sonnet 4.6",
           "limit": { "context": 1000000, "output": 64000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
-          "variants": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "max" }]
+          "variants": {
+            "low": {},
+            "medium": {},
+            "high": {},
+            "max": {},
+          },
         },
         "claude-opus-4.5": {
-          "name": "Claude Opus 4.5 (Kiro)",
+          "name": "Claude Opus 4.5",
           "limit": { "context": 200000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "claude-sonnet-4.5": {
-          "name": "Claude Sonnet 4.5 (Kiro)",
+          "name": "Claude Sonnet 4.5",
           "limit": { "context": 200000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "claude-sonnet-4": {
-          "name": "Claude Sonnet 4 (Kiro)",
+          "name": "Claude Sonnet 4",
           "limit": { "context": 200000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "claude-haiku-4.5": {
-          "name": "Claude Haiku 4.5 (Kiro)",
+          "name": "Claude Haiku 4.5",
           "limit": { "context": 200000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "deepseek-3.2": {
-          "name": "DeepSeek V3.2 (Kiro)",
+          "name": "DeepSeek V3.2",
           "limit": { "context": 164000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "minimax-m2.5": {
-          "name": "MiniMax M2.5 (Kiro)",
+          "name": "MiniMax M2.5",
           "limit": { "context": 196000, "output": 64000 },
-          "modalities": { "input": ["text"], "output": ["text"] }
+          "modalities": { "input": ["text"], "output": ["text"] },
         },
         "minimax-m2.1": {
-          "name": "MiniMax M2.1 (Kiro)",
+          "name": "MiniMax M2.1",
           "limit": { "context": 196000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
         },
         "glm-5": {
-          "name": "GLM-5 (Kiro)",
+          "name": "GLM-5",
           "limit": { "context": 200000, "output": 64000 },
-          "modalities": { "input": ["text"], "output": ["text"] }
+          "modalities": { "input": ["text"], "output": ["text"] },
         },
         "qwen3-coder-next": {
-          "name": "Qwen3 Coder Next (Kiro)",
+          "name": "Qwen3 Coder Next",
           "limit": { "context": 256000, "output": 64000 },
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        }
-      }
-    }
-  }
+          "modalities": { "input": ["text", "image"], "output": ["text"] },
+        },
+      },
+    },
+  },
 }
