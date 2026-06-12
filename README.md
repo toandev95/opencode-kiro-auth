@@ -34,6 +34,21 @@ on every request. Requests are shaped to match kiro-cli''s wire format.
 - `plugin.ts` registers the opencode `auth` hook whose loader returns the
   intercepting `fetch`.
 
+## Web search (no API key)
+
+The plugin also registers a `web_search` tool backed by Kiro''s built-in web search,
+the same one kiro-cli uses. It runs server-side on Kiro''s backend through the
+CodeWhisperer `InvokeMCP` operation, authenticated with your existing kiro-cli login,
+so it needs no third-party search API key.
+
+- `mcp.ts` calls `InvokeMCP` (JSON-RPC `tools/call` for `web_search`) and parses the
+  `{ "results": [...] }` payload.
+- `tools.ts` exposes it to opencode as the `web_search` tool, returning titles, URLs,
+  and snippets with inline citation hints.
+
+Verify it end to end (uses your live login, prints no token):
+`bun run script/test-websearch.ts "latest Node.js LTS version"`
+
 ## Author
 
 Toan Doan <toandev.95@gmail.com>

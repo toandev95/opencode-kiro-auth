@@ -3,6 +3,7 @@ import { PROVIDER_ID } from "./constants"
 import { getValidAccessToken, readToken, KiroAuthError } from "./auth"
 import { toKiroRequest, kiroToAnthropicStream } from "./transform"
 import { getProfileArn } from "./profile"
+import { tools } from "./tools"
 
 /**
  * opencode plugin that lets you use kiro-cli''s existing AWS SSO/IdC credentials
@@ -12,6 +13,7 @@ import { getProfileArn } from "./profile"
  */
 export async function KiroAuthPlugin(_input: PluginInput): Promise<Hooks> {
   return {
+    tool: tools,
     auth: {
       provider: PROVIDER_ID,
       methods: [

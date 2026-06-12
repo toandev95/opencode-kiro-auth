@@ -15,6 +15,7 @@ export const EXPIRY_SKEW_MS = 5 * 60 * 1000
 export const KIRO_ENDPOINT = "https://runtime.us-east-1.kiro.dev/"
 export const KIRO_MANAGEMENT_ENDPOINT = "https://management.us-east-1.kiro.dev/"
 export const KIRO_TARGET = "AmazonCodeWhispererStreamingService.GenerateAssistantResponse"
+export const KIRO_INVOKE_MCP_TARGET = "AmazonCodeWhispererStreamingService.InvokeMCP"
 export const KIRO_LIST_PROFILES_TARGET = "AmazonCodeWhispererService.ListAvailableProfiles"
 export const KIRO_CONTENT_TYPE = "application/x-amz-json-1.0"
 export const KIRO_ORIGIN = "KIRO_CLI"
