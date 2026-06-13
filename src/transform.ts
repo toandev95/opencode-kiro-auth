@@ -342,3 +342,41 @@ export function kiroToAnthropicStream(res: Response, model: string, contextLimit
 
   return new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } })
 }
+
+/* ------------------------------ error mapping ------------------------------ */
+
+/**
+ * Translate a Kiro error response into something opencode handles well.
+ *
+ * Kiro returns a 400 ValidationException ("Input content length exceeds threshold",
+ * reason CONTENT_LENGTH_EXCEEDS_THRESHOLD) when the whole request (history + images)
+ * is too large. opencode only recognizes a request as a context overflow — and then
+ * shows a clear "start a new session or /compact" message — when the 400 message
+ * contains phrases like "prompt is too long". So we reshape that specific case into an
+ * Anthropic-style error carrying that phrase; everything else is passed through verbatim.
+ */
+export function mapKiroError(detail: string, status: number): { body: string; status: number } {
+  let reason = ""
+  let message = ""
+  try {
+    const parsed = JSON.parse(detail) as { reason?: string; message?: string }
+    reason = parsed.reason ?? ""
+    message = parsed.message ?? ""
+  } catch {
+    // non-JSON body; fall through to pass-through
+  }
+
+  const tooLong = reason === "CONTENT_LENGTH_EXCEEDS_THRESHOLD" || /content length exceeds/i.test(message)
+  if (status === 400 && tooLong) {
+    const friendly =
+      "Prompt is too long: Kiro rejected the request because the total input " +
+      "(conversation history plus images) exceeds its content-length limit. Start a new " +
+      "session or run /compact to reduce context, and avoid very large or tall images."
+    return {
+      status: 400,
+      body: JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: friendly } }),
+    }
+  }
+
+  return { body: detail || `Kiro request failed (${status})`, status }
+}

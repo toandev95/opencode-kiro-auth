@@ -1,7 +1,7 @@
 import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { PROVIDER_ID } from "./constants"
 import { getValidAccessToken, readToken, KiroAuthError } from "./auth"
-import { toKiroRequest, kiroToAnthropicStream } from "./transform"
+import { toKiroRequest, kiroToAnthropicStream, mapKiroError } from "./transform"
 import { getProfileArn } from "./profile"
 import { resolveContextLimit } from "./limits"
 import { logKiroError } from "./debug"
@@ -64,8 +64,10 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
             const detail = await response.text().catch(() => "")
             // Capture the real failure reason (e.g. an image/size limit) that opencode drops.
             logKiroError({ model, images: summarizeImages(body), bodyBytes: (init?.body as string)?.length ?? 0 }, response.status, detail)
-            return new Response(detail || `Kiro request failed (${response.status})`, {
-              status: response.status,
+            // Reshape known Kiro errors so opencode shows an actionable message.
+            const mapped = mapKiroError(detail, response.status)
+            return new Response(mapped.body, {
+              status: mapped.status,
               headers: { "content-type": "application/json" },
             })
           }
