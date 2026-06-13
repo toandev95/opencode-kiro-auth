@@ -12,7 +12,7 @@ import type { KiroEvent } from "./eventstream"
  * as a length summary; every other event is logged with its full payload, which
  * is where any usage/metadata fields would live.
  */
-const ENABLED = process.env.KIRO_DEBUG_EVENTS !== "0" // TEMP: on by default to capture usage events; set KIRO_DEBUG_EVENTS=0 to disable
+const ENABLED = Boolean(process.env.KIRO_DEBUG_EVENTS)
 const LOG_FILE = process.env.KIRO_DEBUG_FILE || join(tmpdir(), "kiro-events.log")
 
 export function isDebugEnabled(): boolean {

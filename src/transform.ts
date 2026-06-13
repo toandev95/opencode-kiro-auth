@@ -228,6 +228,32 @@ export function toKiroRequest(
 
 /* ---------------------------- response mapping ----------------------------- */
 
+// Kiro reports context usage as a percentage (contextUsageEvent), not raw token counts.
+// To drive opencode's context gauge we convert that percentage back into a synthetic
+// input-token count against the model's context window. Using the same limits opencode
+// is configured with means the gauge shows the exact percentage Kiro reported.
+const CONTEXT_LIMITS: Record<string, number> = {
+  auto: 1_000_000,
+  "claude-opus-4.8": 1_000_000,
+  "claude-opus-4.7": 1_000_000,
+  "claude-opus-4.6": 1_000_000,
+  "claude-sonnet-4.6": 1_000_000,
+  "claude-opus-4.5": 200_000,
+  "claude-sonnet-4.5": 200_000,
+  "claude-sonnet-4": 200_000,
+  "claude-haiku-4.5": 200_000,
+  "glm-5": 200_000,
+  "deepseek-3.2": 164_000,
+  "minimax-m2.5": 196_000,
+  "minimax-m2.1": 196_000,
+  "qwen3-coder-next": 256_000,
+}
+const DEFAULT_CONTEXT_LIMIT = 1_000_000
+
+function contextLimitFor(model: string): number {
+  return CONTEXT_LIMITS[model] ?? DEFAULT_CONTEXT_LIMIT
+}
+
 function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 }
@@ -257,6 +283,11 @@ export function kiroToAnthropicStream(res: Response, model: string): Response {
       let currentTool: string | null = null
       let usedTool = false
       let blockOpen = false
+      // Kiro emits a contextUsageEvent (percentage) and meteringEvent (credits) near the
+      // end of the stream. We translate the percentage into a token count for opencode's
+      // gauge, and estimate output tokens from the streamed text (~4 chars/token).
+      let contextPercent: number | null = null
+      let outputChars = 0
 
       const closeBlock = () => {
         if (!blockOpen) return
@@ -271,6 +302,7 @@ export function kiroToAnthropicStream(res: Response, model: string): Response {
           if (ev.eventType === "assistantResponseEvent") {
             const content = ev.payload.content
             if (typeof content !== "string" || content.length === 0) continue
+            outputChars += content.length
             if (currentTool || !blockOpen) {
               closeBlock()
               index += 1
@@ -306,16 +338,25 @@ export function kiroToAnthropicStream(res: Response, model: string): Response {
             continue
           }
 
+          if (ev.eventType === "contextUsageEvent") {
+            const pct = (ev.payload as { contextUsagePercentage?: unknown }).contextUsagePercentage
+            if (typeof pct === "number" && Number.isFinite(pct)) contextPercent = pct
+            continue
+          }
+
           if (ev.eventType.toLowerCase().includes("exception") || ev.eventType === "error") {
             send("error", { type: "error", error: { type: "api_error", message: JSON.stringify(ev.payload) } })
           }
         }
 
         closeBlock()
+        const limit = contextLimitFor(model)
+        const inputTokens = contextPercent != null ? Math.round((contextPercent / 100) * limit) : 0
+        const outputTokens = outputChars > 0 ? Math.ceil(outputChars / 4) : 0
         send("message_delta", {
           type: "message_delta",
           delta: { stop_reason: usedTool ? "tool_use" : "end_turn", stop_sequence: null },
-          usage: { output_tokens: 0 },
+          usage: { input_tokens: inputTokens, output_tokens: outputTokens },
         })
         send("message_stop", { type: "message_stop" })
       } catch (error) {
