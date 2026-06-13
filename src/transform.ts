@@ -228,38 +228,12 @@ export function toKiroRequest(
 
 /* ---------------------------- response mapping ----------------------------- */
 
-// Kiro reports context usage as a percentage (contextUsageEvent), not raw token counts.
-// To drive opencode's context gauge we convert that percentage back into a synthetic
-// input-token count against the model's context window. Using the same limits opencode
-// is configured with means the gauge shows the exact percentage Kiro reported.
-const CONTEXT_LIMITS: Record<string, number> = {
-  auto: 1_000_000,
-  "claude-opus-4.8": 1_000_000,
-  "claude-opus-4.7": 1_000_000,
-  "claude-opus-4.6": 1_000_000,
-  "claude-sonnet-4.6": 1_000_000,
-  "claude-opus-4.5": 200_000,
-  "claude-sonnet-4.5": 200_000,
-  "claude-sonnet-4": 200_000,
-  "claude-haiku-4.5": 200_000,
-  "glm-5": 200_000,
-  "deepseek-3.2": 164_000,
-  "minimax-m2.5": 196_000,
-  "minimax-m2.1": 196_000,
-  "qwen3-coder-next": 256_000,
-}
-const DEFAULT_CONTEXT_LIMIT = 1_000_000
-
-function contextLimitFor(model: string): number {
-  return CONTEXT_LIMITS[model] ?? DEFAULT_CONTEXT_LIMIT
-}
-
 function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 }
 
 /** Convert Kiro's event-stream into the Anthropic Messages SSE stream opencode expects. */
-export function kiroToAnthropicStream(res: Response, model: string): Response {
+export function kiroToAnthropicStream(res: Response, model: string, contextLimit = 1_000_000): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const enc = new TextEncoder()
@@ -350,8 +324,7 @@ export function kiroToAnthropicStream(res: Response, model: string): Response {
         }
 
         closeBlock()
-        const limit = contextLimitFor(model)
-        const inputTokens = contextPercent != null ? Math.round((contextPercent / 100) * limit) : 0
+        const inputTokens = contextPercent != null ? Math.round((contextPercent / 100) * contextLimit) : 0
         const outputTokens = outputChars > 0 ? Math.ceil(outputChars / 4) : 0
         send("message_delta", {
           type: "message_delta",

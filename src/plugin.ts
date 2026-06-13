@@ -3,6 +3,7 @@ import { PROVIDER_ID } from "./constants"
 import { getValidAccessToken, readToken, KiroAuthError } from "./auth"
 import { toKiroRequest, kiroToAnthropicStream } from "./transform"
 import { getProfileArn } from "./profile"
+import { resolveContextLimit } from "./limits"
 import { tools } from "./tools"
 
 /**
@@ -11,7 +12,7 @@ import { tools } from "./tools"
  * sentinel auth marker; the real bearer token is always read (and refreshed) straight
  * from kiro-cli''s own cache on every request.
  */
-export async function KiroAuthPlugin(_input: PluginInput): Promise<Hooks> {
+export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
   return {
     tool: tools,
     auth: {
@@ -52,7 +53,10 @@ export async function KiroAuthPlugin(_input: PluginInput): Promise<Hooks> {
             })
           }
 
-          return kiroToAnthropicStream(response, model)
+          // Context window comes from the live opencode config (falls back to a bundled
+          // table), so the percentage we synthesize for the gauge matches what opencode shows.
+          const contextLimit = await resolveContextLimit(input.client, PROVIDER_ID, model)
+          return kiroToAnthropicStream(response, model, contextLimit)
         },
       }),
     },
