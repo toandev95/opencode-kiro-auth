@@ -8,6 +8,7 @@ import {
   KIRO_X_AMZ_USER_AGENT,
 } from "./constants"
 import { readKiroEvents } from "./eventstream"
+import { logKiroEvent } from "./debug"
 
 /* ----------------------------- request mapping ----------------------------- */
 
@@ -266,6 +267,7 @@ export function kiroToAnthropicStream(res: Response, model: string): Response {
 
       try {
         for await (const ev of readKiroEvents(res)) {
+          logKiroEvent(ev)
           if (ev.eventType === "assistantResponseEvent") {
             const content = ev.payload.content
             if (typeof content !== "string" || content.length === 0) continue
