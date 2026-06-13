@@ -39,3 +39,23 @@ export function logKiroEvent(ev: KiroEvent): void {
 export function debugLogPath(): string {
   return LOG_FILE
 }
+
+const ERROR_LOG_FILE = process.env.KIRO_ERROR_FILE || join(tmpdir(), "kiro-errors.log")
+
+/**
+ * Always-on logging for failed Kiro requests. Errors are rare and the response body
+ * carries the real reason (e.g. an image/size limit), which opencode's logs drop.
+ */
+export function logKiroError(context: Record<string, unknown>, status: number, body: string): void {
+  try {
+    const line = `[${new Date().toISOString()}] status=${status} ${JSON.stringify(context)} body=${body.slice(0, 2000)}`
+    appendFileSync(ERROR_LOG_FILE, line + "\n")
+  } catch {
+    // diagnostics must never throw
+  }
+}
+
+export function errorLogPath(): string {
+  return ERROR_LOG_FILE
+}
+

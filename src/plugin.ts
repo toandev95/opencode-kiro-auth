@@ -4,7 +4,22 @@ import { getValidAccessToken, readToken, KiroAuthError } from "./auth"
 import { toKiroRequest, kiroToAnthropicStream } from "./transform"
 import { getProfileArn } from "./profile"
 import { resolveContextLimit } from "./limits"
+import { logKiroError } from "./debug"
 import { tools } from "./tools"
+
+/** Summarize images in an Anthropic request body for error diagnostics (no pixel data). */
+function summarizeImages(body: any): Array<{ mime?: string; base64Len: number }> {
+  const out: Array<{ mime?: string; base64Len: number }> = []
+  for (const msg of body?.messages ?? []) {
+    if (!Array.isArray(msg?.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === "image" && block?.source?.data) {
+        out.push({ mime: block.source.media_type, base64Len: String(block.source.data).length })
+      }
+    }
+  }
+  return out
+}
 
 /**
  * opencode plugin that lets you use kiro-cli''s existing AWS SSO/IdC credentials
@@ -47,6 +62,8 @@ export async function KiroAuthPlugin(input: PluginInput): Promise<Hooks> {
 
           if (!response.ok) {
             const detail = await response.text().catch(() => "")
+            // Capture the real failure reason (e.g. an image/size limit) that opencode drops.
+            logKiroError({ model, images: summarizeImages(body), bodyBytes: (init?.body as string)?.length ?? 0 }, response.status, detail)
             return new Response(detail || `Kiro request failed (${response.status})`, {
               status: response.status,
               headers: { "content-type": "application/json" },
